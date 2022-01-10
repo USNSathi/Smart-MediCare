@@ -1,0 +1,41 @@
+version: '3.8'
+
+services: 
+    mysqldb:
+        container_name: smart_medicare_db
+        image: mysql:5.7
+        restart: always
+        env_file: ./docker.env
+        environment: 
+            MYSQL_ROOT_PASSWORD: password
+            MYSQL_DATABASE: smart_medicare
+            MYSQL_USER: root
+            MYSQL_PASSWORD: password
+        ports:
+            - "3306:3306"
+        
+        volumes:
+            - mysql:/var/lib/mysql
+            - mysql_config:/etc/mysql
+
+    web:
+        container_name: smart_medicare_web
+        restart: always
+        build:
+            context: .
+        env_file: ./docker.env
+        command: npm run dev
+        volumes: 
+            - .:/app/
+            - /app/node_modules
+        ports:
+            - "127.0.0.1:3001:3001"
+
+        depends_on: 
+            - mysqldb
+        environment: 
+            MYSQL_HOST: mysqldb
+
+volumes:
+    mysql:
+    mysql_config:

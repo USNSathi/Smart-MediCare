@@ -1,0 +1,321 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model address {
+  registration_no String   @id @db.Char(10)
+  address         String   @db.Text
+  phone_no        String?  @db.Char(14)
+  mobile_no       String?  @db.Char(14)
+  latitude        Decimal? @db.Decimal(10, 5)
+  longitude       Decimal? @db.Decimal(10, 5)
+  hospital        hospital @relation(fields: [registration_no], references: [registration_no], onUpdate: Restrict, map: "address_fk0")
+}
+
+model booking {
+  id              String              @id @db.Char(10)
+  booked_at       DateTime            @default(now()) @db.DateTime(0)
+  mobile_no       String              @db.Char(14)
+  name            String?             @db.VarChar(50)
+  sex             booking_sex
+  bed_type        booking_bed_type
+  booked_for      booking_booked_for?
+  cancelled_at    DateTime?           @db.DateTime(0)
+  registration_no String              @db.Char(10)
+  status          booking_status
+  remarks         String?             @db.TinyText
+  last_updated    DateTime            @default(now()) @db.DateTime(0)
+  user            user                @relation(fields: [mobile_no], references: [mobile_no], onUpdate: Restrict, map: "booking_fk0")
+  hospital        hospital            @relation(fields: [registration_no], references: [registration_no], onUpdate: Restrict, map: "booking_fk1")
+
+  @@index([mobile_no], map: "booking_fk0")
+  @@index([registration_no], map: "booking_fk1")
+}
+
+model capacity {
+  registration_no String   @id @db.Char(10)
+  total_capacity  Int      @db.MediumInt
+  ward            Int?     @db.SmallInt
+  special_ward    Int?     @db.SmallInt
+  cabin           Int?     @db.TinyInt
+  vip_cabin       Int?     @db.TinyInt
+  icu             Int?     @db.TinyInt
+  ccu             Int?     @db.TinyInt
+  hdu             Int?     @db.SmallInt
+  hfncu           Int?     @db.SmallInt
+  emergency       Int?     @db.SmallInt
+  covid           Int?     @db.SmallInt
+  extra           Int?     @db.SmallInt
+  hospital        hospital @relation(fields: [registration_no], references: [registration_no], onUpdate: Restrict, map: "capacity_fk0")
+}
+
+model hospital {
+  registration_no            String                      @id @db.Char(10)
+  hospital_name              String                      @unique(map: "hospital_name") @db.VarChar(100)
+  description                String?                     @db.Text
+  hospital_type              hospital_hospital_type
+  bed_type                   String
+  image_source               String                      @unique(map: "image_source") @db.VarChar(500)
+  website                    String?                     @db.TinyText
+  joined_on                  DateTime                    @default(now()) @db.DateTime(0)
+  status                     hospital_status             @default(private)
+  address                    address?
+  amenity                    amenity?
+  blood_analytical_service   blood_analytical_service?
+  booking                    booking[]
+  capacity                   capacity?
+  diagnostic_imaging_service diagnostic_imaging_service?
+  doctor                     doctor[]
+  general_service            general_service?
+  log                        log[]
+  staff                      staff[]
+  vacant_bed_log             vacant_bed_log[]
+}
+
+model log {
+  logged_at       DateTime @default(now()) @db.DateTime(0)
+  registration_no String   @db.Char(10)
+  task            String   @db.TinyText
+  mobile_no       String   @db.Char(14)
+  role            log_role
+  staff           staff    @relation(fields: [mobile_no], references: [mobile_no], onUpdate: Restrict, map: "log_fk1")
+  hospital        hospital @relation(fields: [registration_no], references: [registration_no], onUpdate: Restrict, map: "log_fk0")
+
+  @@id([logged_at, registration_no])
+  @@index([registration_no], map: "log_fk0")
+  @@index([mobile_no], map: "log_fk1")
+}
+
+model staff {
+  mobile_no       String       @db.Char(14)
+  password        String       @db.Char(50)
+  name            String       @db.VarChar(50)
+  email           String       @unique(map: "email") @db.VarChar(50)
+  role            staff_role
+  status          staff_status
+  registration_no String       @db.Char(10)
+  joined_on       DateTime     @default(now()) @db.DateTime(0)
+  last_updated    DateTime     @default(now()) @db.DateTime(0)
+  hospital        hospital     @relation(fields: [registration_no], references: [registration_no], onUpdate: Restrict, map: "staff_fk0")
+  log             log[]
+
+  @@id([mobile_no, registration_no, joined_on])
+  @@index([registration_no], map: "staff_fk0")
+}
+
+model user {
+  mobile_no   String    @id @db.Char(14)
+  password    String    @db.VarChar(50)
+  name        String    @db.VarChar(50)
+  sex         user_sex
+  dob         DateTime  @db.Date
+  email       String?   @unique(map: "email") @db.VarChar(50)
+  document_id String?   @unique(map: "document_id") @db.Char(17)
+  joined_on   DateTime  @default(now()) @db.DateTime(0)
+  booking     booking[]
+}
+
+model vacant_bed_log {
+  registration_no String   @db.Char(10)
+  last_updated    DateTime @default(now()) @db.DateTime(0)
+  ward            Int?     @db.SmallInt
+  special_ward    Int?     @db.SmallInt
+  cabin           Int?     @db.TinyInt
+  vip_cabin       Int?     @db.TinyInt
+  icu             Int?     @db.TinyInt
+  ccu             Int?     @db.TinyInt
+  hdu             Int?     @db.SmallInt
+  hfncu           Int?     @db.SmallInt
+  emergency       Int?     @db.SmallInt
+  covid           Int?     @db.SmallInt
+  extra           Int?     @db.SmallInt
+  hospital        hospital @relation(fields: [registration_no], references: [registration_no], onUpdate: Restrict, map: "vacant_bed_log_fk0")
+
+  @@id([registration_no, last_updated])
+}
+
+model amenity {
+  registration_no String   @id @db.Char(10)
+  atm             Boolean?
+  baby_corner     Boolean?
+  cafeteria       Boolean?
+  gift_shop       Boolean?
+  locker          Boolean?
+  parking         Boolean?
+  pharmacy        Boolean?
+  prayer_area     Boolean?
+  wheelchair      Boolean?
+  wifi            Boolean?
+  hospital        hospital @relation(fields: [registration_no], references: [registration_no], onUpdate: Restrict, map: "amenity_fk0")
+}
+
+model blood_analytical_service {
+  registration_no          String   @id @db.Char(10)
+  antibody_analysis        Boolean?
+  cbc                      Boolean?
+  creatinine_analysis      Boolean?
+  crp                      Boolean?
+  esr                      Boolean?
+  fobt                     Boolean?
+  hematocrit               Boolean?
+  kidney_function_analysis Boolean?
+  lipid_profile            Boolean?
+  liver_function_analysis  Boolean?
+  rf                       Boolean?
+  serum_analysis           Boolean?
+  sr                       Boolean?
+  hospital                 hospital @relation(fields: [registration_no], references: [registration_no], onUpdate: Restrict, map: "blood_analytical_service_fk0")
+}
+
+model diagnostic_imaging_service {
+  registration_no   String   @id @db.Char(10)
+  angiocardiography Boolean?
+  angiography       Boolean?
+  cta               Boolean?
+  ct                Boolean?
+  coloscopy         Boolean?
+  cystoscopy        Boolean?
+  echocardiography  Boolean?
+  endoscopy         Boolean?
+  fluoroscopy       Boolean?
+  mra               Boolean?
+  mri               Boolean?
+  mrs               Boolean?
+  mammography       Boolean?
+  pet               Boolean?
+  pet_ct            Boolean?
+  spect             Boolean?
+  ultrasound        Boolean?
+  x_ray             Boolean?
+  hospital          hospital @relation(fields: [registration_no], references: [registration_no], onUpdate: Restrict, map: "diagnostic_imaging_service_fk0")
+}
+
+model doctor {
+  id              String     @db.Char(10)
+  registration_no String     @db.Char(10)
+  name            String     @db.VarChar(50)
+  designation     String     @db.TinyText
+  chamber         String?    @db.VarChar(10)
+  bio             String?    @db.Text
+  joined_on       DateTime   @default(now()) @db.DateTime(0)
+  hospital        hospital   @relation(fields: [registration_no], references: [registration_no], onUpdate: Restrict, map: "doctor_fk0")
+  schedule        schedule[]
+
+  @@id([id, registration_no, joined_on])
+  @@index([registration_no], map: "doctor_fk0")
+}
+
+model general_service {
+  registration_no   String   @id @db.Char(10)
+  autopsy           Boolean?
+  biopsy            Boolean?
+  blood_bank        Boolean?
+  bronchoscopy      Boolean?
+  ecg               Boolean?
+  echocardiography  Boolean?
+  emg               Boolean?
+  laparoscopy       Boolean?
+  phonocardiography Boolean?
+  urinalysis        Boolean?
+  hospital          hospital @relation(fields: [registration_no], references: [registration_no], onUpdate: Restrict, map: "general_service_fk0")
+}
+
+model schedule {
+  id           String       @db.Char(10)
+  day          schedule_day
+  start_time   DateTime     @db.Time(0)
+  end_time     DateTime     @db.Time(0)
+  last_updated DateTime     @default(now()) @db.DateTime(0)
+  doctor       doctor       @relation(fields: [id], references: [id], onUpdate: Restrict, map: "schedule_fk0")
+
+  @@id([id, day])
+}
+
+enum booking_bed_type {
+  Ward
+  Special_Ward @map("Special Ward")
+  Cabin
+  VIP_Cabin @map("VIP Cabin")
+  ICU
+  CCU
+  HDU
+  HFNCU
+  Emergency
+  COVID
+  Extra
+}
+
+enum booking_booked_for {
+  Self
+  Father
+  Mother
+  Brother
+  Sister
+  Relative
+  Friend
+  Stranger
+}
+
+enum hospital_hospital_type {
+  Public
+  Private
+}
+
+enum log_role {
+  Admin
+  DB_Manager @map("DB Manager")
+  Moderator
+}
+
+enum staff_role {
+  Admin
+  DB_Manager @map("DB Manager")
+  Moderator
+}
+
+enum booking_sex {
+  M
+  F
+  T
+  S
+}
+
+enum schedule_day {
+  R
+  S
+  M
+  T
+  W
+  A
+  F
+}
+
+enum user_sex {
+  M
+  F
+  T
+  S
+}
+
+enum hospital_status {
+  public
+  private
+  deleted
+}
+
+enum staff_status {
+  Active
+  Inactive
+}
+
+enum booking_status {
+  Requested
+  Booked
+  Served
+  Cancelled
+}
